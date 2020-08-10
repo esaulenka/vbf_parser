@@ -10,7 +10,7 @@ def crc16(data):
     crc = 0xFFFF
     for b in data:
         crc ^= b << 8
-        for _ in xrange(8):
+        for _ in range(8):
             if crc & 0x8000:
                 crc = (crc << 1) ^ 0x1021
             else:
@@ -29,11 +29,19 @@ inname = sys.argv[1]
 with open(inname, 'rb') as f:
     data = f.read()
 
-header_len = data.find('\x3B\x0D\x0A\x7D') + 4
-print 'Header length: 0x%04X' % header_len
+
+# search for header end
+patterns = [ b';\r\n}', b';\r\n\r\n}' ]
+for p in patterns:
+    header_len = data.find(p)
+    if header_len > 0:
+        header_len += len(p)
+        break
+
+print('Header length: 0x%04X' % header_len)
 
 if header_len < 100:
-    print 'Unknown format'
+    print('Header too short! Unknown format')
     quit(-1)
 
 
@@ -51,8 +59,8 @@ while offset < len(data):
     crc = struct.unpack('>H', data[offset: offset + 2])[0]
     offset += 2
 
-    crc_res = 'ok ' if crc16(block_data) == crc else 'error'
-    print "Block adr: 0x%X length: 0x%X crc %s" % (block_addr, block_len, crc_res)
+    crc_res = 'ok' if crc16(block_data) == crc else 'error'
+    print("Block adr: 0x%X length: 0x%X crc %s" % (block_addr, block_len, crc_res))
 
     out_hex.frombytes(block_data, block_addr)
 
